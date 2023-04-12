@@ -5,6 +5,8 @@ from time import time
 from os import path
 import asyncio
 
+from bokeh.models.mappers import LinearColorMapper
+
 from matipo import SEQUENCE_DIR, GLOBALS_DIR
 from matipo.sequence import Sequence
 from matipo.util.decimation import decimate
@@ -36,19 +38,21 @@ class RARE2DApp(DashboardApp):
         
         self.override_pars = override_pars
         self.override_par_files = override_par_files
+        self.phase_order = None
         
-        self.kdata_order = None
+        self.plot_config_done = False
         
         
     
     async def replot(self):
         await self.seq.fetch_data()
         kdata = decimate(self.seq.data.reshape(-1, self.seq.par.n_samples), POST_DEC, axis=1)
-        kdata = kdata[self.kdata_order]
+        kdata = kdata[self.phase_order]
         imdata = fft_reconstruction(kdata)
         self.plot1.update_data(np.abs(kdata), 1, 1) # TODO kspace axis scales
-        self.plot1.im.glyph.color_mapper.low = 0
         self.plot2.update_data(np.abs(imdata), 1, 1) # TODO image axis scales
+        if not self.plot_config_done:
+            self.plot1.im.glyph.color_mapper = LinearColorMapper(palette="Viridis256", low=0)
         pn.io.push_notebook(self.plot_row)
     
     def progress_handler(self, p, l):
@@ -68,12 +72,18 @@ class RARE2DApp(DashboardApp):
         
         self.seq.setpar(**get_current_values(self.override_pars))
         
+        if 'phase_order' in self.override_pars:
+            self.phase_order = self.override_pars['phase_order']
+            if callable(self.phase_order):
+                self.phase_order = self.phase_order()
+            self.phase_order = np.argsort(self.phase_order)
+        else:
+            self.phase_order = np.argsort(np.sum(self.seq.par.g_phase_1, axis=1), axis=0)
+        
         # adjust n_samples and t_dw for postprocess decimation
         self.seq.setpar(
             n_samples=POST_DEC*self.seq.par.n_samples,
             t_dw=self.seq.par.t_dw/POST_DEC)
-        
-        self.kdata_order = np.argsort(np.sum(self.seq.par.g_phase_1, axis=1), axis=0)
         
         log.debug(self.seq.par)
         await self.seq.run(progress_handler=self.progress_handler)
