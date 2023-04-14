@@ -49,8 +49,15 @@ class RARE2DApp(DashboardApp):
         kdata = decimate(self.seq.data.reshape(-1, self.seq.par.n_samples), POST_DEC, axis=1)
         kdata = kdata[self.phase_order]
         imdata = fft_reconstruction(kdata)
-        self.plot1.update_data(np.abs(kdata), 1, 1) # TODO kspace axis scales
-        self.plot2.update_data(np.abs(imdata), 1, 1) # TODO image axis scales
+        # kx_max = 1e6*0.5*self.seq.par.n_samples*self.seq.par.t_dw*np.linalg.norm(self.seq.par.g_read)
+        # if kx_max==0:
+        #     kx_max = 1
+        # ky_max = 1e6*self.seq.par.t_phase*np.max(np.linalg.norm(self.seq.par.g_phase_1, axis=1))
+        # if ky_max==0:
+        #     ky_max = 1
+        
+        self.plot1.update_data(np.abs(kdata), kdata.shape[0], kdata.shape[1]) # TODO kspace axis scales
+        self.plot2.update_data(np.abs(imdata), imdata.shape[0], imdata.shape[1]) # TODO image axis scales
         if not self.plot_config_done:
             self.plot1.im.glyph.color_mapper = LinearColorMapper(palette="Viridis256", low=0)
         pn.io.push_notebook(self.plot_row)
