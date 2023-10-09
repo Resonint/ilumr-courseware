@@ -39,6 +39,9 @@ The notebooks can also be viewed on a PC with jupyterlab installed (but generall
 | 3   | Selective Excitation  | In Development |
 | 4   | Relaxation & Contrast | Planned        |
 | 5   | Fast Imaging          | Planned        |
+| 6   | Imaging Artefacts     | Planned        |
+| 7   | Flow & Diffusion      | Planned        |
+| 8   | Non-Cartesian Imaging | Planned        |
 
 ## Contributing
 
