@@ -24,9 +24,9 @@ log.setLevel(logging.WARNING)
 DIR_PATH = path.dirname(path.realpath(__file__)) # directory of this file
 POST_DEC = 4
 
-class RARE2DApp(DashboardApp):
+class CustomPulseRARE2DApp(DashboardApp):
     def __init__(self, override_pars={}, override_par_files=[], show_magnitude=False, show_complex=True, enable_run_loop=False):
-        super().__init__(None, Sequence(path.join(DIR_PATH, 'programs/RARE.py')), enable_run_loop=enable_run_loop)
+        super().__init__(None, Sequence(path.join(DIR_PATH, 'programs/custom_pulse_RARE.py')), enable_run_loop=enable_run_loop)
         
         
         self.plot1 = ImagePlot(
@@ -48,7 +48,7 @@ class RARE2DApp(DashboardApp):
         await self.seq.fetch_data()
         kdata = decimate(self.seq.data.reshape(-1, self.seq.par.n_samples), POST_DEC, axis=1)
         kdata = kdata[self.phase_order]
-        imdata = fft_reconstruction(kdata, gaussian_blur=0.5)
+        imdata = fft_reconstruction(kdata, gaussian_blur=1)
         # kx_max = 1e6*0.5*self.seq.par.n_samples*self.seq.par.t_dw*np.linalg.norm(self.seq.par.g_read)
         # if kx_max==0:
         #     kx_max = 1
