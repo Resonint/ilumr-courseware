@@ -3,6 +3,7 @@ from collections import OrderedDict
 import panel as pn
 from time import time
 from os import path
+import yaml
 
 from matipo import SEQUENCE_DIR, GLOBALS_DIR
 from matipo.sequence import Sequence
@@ -31,6 +32,10 @@ class CustomPulseSEApp(DashboardApp):
     def __init__(self, override_pars={}, override_par_files=[], show_magnitude=False, show_complex=True, enable_run_loop=False, flat_filter=False):
         super().__init__(None, Sequence(path.join(DIR_PATH, 'programs/custom_pulse_SE.py')), enable_run_loop=enable_run_loop)
         
+        with open(path.join(GLOBALS_DIR, 'gradient_calibration.yaml'), 'r') as f:
+            self.gradient_calibration = float(yaml.load(f, Loader=yaml.SafeLoader)['gradient_calibration'])
+            log.debug(f'gradient_calibration: {self.gradient_calibration}')
+        
         self.plot1 = ComplexPlot(
             title="Signal",
             show_magnitude=show_magnitude,
@@ -41,8 +46,8 @@ class CustomPulseSEApp(DashboardApp):
             title="Spectrum",
             show_magnitude=show_magnitude,
             show_complex=show_complex,
-            x_axis_label="relative frequency (Hz)",
-            y_axis_label="spectral density (V/kHz)")
+            x_axis_label="freq. encode axis (m)",
+            y_axis_label="signal (arb units)")
         
         self.plot_row = pn.Row(self.plot1.figure, self.plot2.figure, sizing_mode='stretch_both')
         
@@ -83,43 +88,18 @@ class CustomPulseSEApp(DashboardApp):
             n_samples//=POST_DEC
             y = decimate(y, POST_DEC)
         
-
         
         t0 = t_dw*(n_samples)/2
         # y = autophase(y, t0=t0, dwelltime=t_dw)
         y = autophase_max(y) # use simpler autophase that works better for imaging
         x = np.linspace(0, n_samples*t_dw, n_samples, endpoint=False)
         
-        # self.y = y
-        # self.x = x
-        
-        # find interpolated halfway index of the signal array
-        # y_sum = np.cumsum(np.abs(y))
-        # self.y_sum = y_sum
-        # # y_sum = np.cumsum(y.real)
-        # y_half_index = np.searchsorted(y_sum, y_sum[-1]/2.0)
-        # y_half_index += (y_sum[-1]/2.0 - y_sum[y_half_index-1])/(y_sum[y_half_index] - y_sum[y_half_index-1]) - 1
-        
-        # self.y_half_index = y_half_index
-        
-        # find halfway time
-        # t0 = t_dw*y_half_index
-        # y_abs = np.abs(y)
-        # t0 = np.sum((x)*(y_abs/np.sum(y_abs)))
-        
-        # i_peak = np.argmax(y.real)
-        # fit_peak = np.polyfit(x[i_peak-1:i_peak+2],y.real[i_peak-1:i_peak+2],2)
-        # t0 = -fit_peak[1]/(2*fit_peak[0]) # quadratic maximum
-        
-        # t0 = t_dw*np.argmax(y.real)
-        
-        # self.t0 = t0
-        
         freq, fft = get_freq_spectrum(y, t_dw)
         fft *= np.exp(1j * 2 * np.pi * -t0 * freq)  # correct for time shift
+        spatial_axis = freq*self.gradient_calibration/np.linalg.norm(self.seq.par.g_read)
         
         self.plot1.update_data(x, y)
-        self.plot2.update_data(freq, fft)
+        self.plot2.update_data(spatial_axis, fft)
         pn.io.push_notebook(self.plot_row)
     
     def main(self):

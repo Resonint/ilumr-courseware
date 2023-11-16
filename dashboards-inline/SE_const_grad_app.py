@@ -3,6 +3,7 @@ from collections import OrderedDict
 import panel as pn
 from time import time
 from os import path
+import yaml
 
 from matipo import SEQUENCE_DIR, GLOBALS_DIR
 from matipo.sequence import Sequence
@@ -31,6 +32,10 @@ class ConstGradSEApp(DashboardApp):
     def __init__(self, override_pars={}, override_par_files=[], show_magnitude=False, show_complex=True, enable_run_loop=False, flat_filter=False):
         super().__init__(None, Sequence(path.join(DIR_PATH, 'programs/SE_const_grad.py')), enable_run_loop=enable_run_loop)
         
+        with open(path.join(GLOBALS_DIR, 'gradient_calibration.yaml'), 'r') as f:
+            self.gradient_calibration = float(yaml.load(f, Loader=yaml.SafeLoader)['gradient_calibration'])
+            log.debug(f'gradient_calibration: {self.gradient_calibration}')
+        
         self.plot1 = ComplexPlot(
             title="Signal",
             show_magnitude=show_magnitude,
@@ -38,11 +43,11 @@ class ConstGradSEApp(DashboardApp):
             x_axis_label="time (s)",
             y_axis_label="signal (V)")
         self.plot2 = ComplexPlot(
-            title="Spectrum",
+            title="Image",
             show_magnitude=show_magnitude,
             show_complex=show_complex,
-            x_axis_label="relative frequency (Hz)",
-            y_axis_label="spectral density (V/kHz)")
+            x_axis_label="freq. encode axis (m)",
+            y_axis_label="signal (arb units)")
         
         self.plot_row = pn.Row(self.plot1.figure, self.plot2.figure, sizing_mode='stretch_both')
         
@@ -89,9 +94,10 @@ class ConstGradSEApp(DashboardApp):
         x = np.linspace(0, n_samples*t_dw, n_samples)
         freq, fft = get_freq_spectrum(y, t_dw)
         fft *= np.exp(1j * 2 * np.pi * -t0 * freq)  # correct for time shift
+        spatial_axis = freq*self.gradient_calibration/np.linalg.norm(self.seq.par.g_read)
         
         self.plot1.update_data(x, y)
-        self.plot2.update_data(freq, fft)
+        self.plot2.update_data(spatial_axis, fft)
         pn.io.push_notebook(self.plot_row)
     
     def main(self):
