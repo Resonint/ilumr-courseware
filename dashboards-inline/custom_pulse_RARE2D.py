@@ -26,8 +26,11 @@ DIR_PATH = path.dirname(path.realpath(__file__)) # directory of this file
 POST_DEC = 4
 
 class CustomPulseRARE2DApp(DashboardApp):
-    def __init__(self, override_pars={}, override_par_files=[], show_magnitude=False, show_complex=True, enable_run_loop=False):
+    def __init__(self, override_pars={}, override_par_files=[], show_magnitude=False, show_complex=True, enable_run_loop=False, upscale_factor=1, gaussian_blur=0.5):
         super().__init__(None, Sequence(path.join(DIR_PATH, 'programs/custom_pulse_RARE.py')), enable_run_loop=enable_run_loop)
+        
+        self.upscale_factor = upscale_factor
+        self.gaussian_blur = gaussian_blur
         
         with open(path.join(GLOBALS_DIR, 'gradient_calibration.yaml'), 'r') as f:
             self.gradient_calibration = float(yaml.load(f, Loader=yaml.SafeLoader)['gradient_calibration'])
@@ -56,7 +59,7 @@ class CustomPulseRARE2DApp(DashboardApp):
         await self.seq.fetch_data()
         kdata = decimate(self.seq.data.reshape(-1, self.seq.par.n_samples), POST_DEC, axis=1)
         kdata = kdata[self.phase_order]
-        imdata = fft_reconstruction(kdata, gaussian_blur=0.5)
+        imdata = fft_reconstruction(kdata, upscale_factor=self.upscale_factor, gaussian_blur=self.gaussian_blur)
         fov_freq = self.gradient_calibration/(np.linalg.norm(self.seq.par.g_read)*self.seq.par.t_dw*POST_DEC)
         g_phase_step_mag = np.linalg.norm(self.seq.par.g_phase_1[self.phase_order[0]]-self.seq.par.g_phase_1[self.phase_order[1]])
         fov_phase = self.gradient_calibration/(g_phase_step_mag*self.seq.par.t_phase)
