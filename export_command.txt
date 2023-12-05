@@ -1,0 +1,1 @@
+jupyter nbconvert --execute --no-input --embed-images --to html Lab\ 3\ Selective\ Excitation.ipynb
