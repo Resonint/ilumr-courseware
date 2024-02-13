@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 g_ZERO = float_array((0,0,0))
+t_MIN = 1e-7
 
 def gen_shaped_pulse(freq, phase, amp, width, shape):
     shape_scaled = shape*amp
@@ -49,7 +50,6 @@ PARDEF = [
     ParDef('f_slice_offset', float, 0),
     ParDef('a_180', float, 0),
     ParDef('t_180', float, 32e-6),
-    ParDef('t_inv', float, 1e-3),
     ParDef('t_dw', float, 1e-6),
     ParDef('n_samples', int, 320),
     ParDef('t_read', float, 320e-6),
@@ -103,27 +103,37 @@ def main(p: ParameterSet):
     n_runs, n_echos = etl.sequence_format(p.n_ETL, p.g_phase_1.shape[0], p.g_phase_2.shape[0])
     
     log.debug(f"n_runs: {n_runs}, n_echos: {n_echos}")
-
-    t_echo = p.t_180 + 6*p.t_grad_ramp + 2*p.t_phase + p.t_read
-    
-    log.debug(f"echo time: {t_echo}")
     
     t_phase_read = p.t_read/2 - p.t_grad_ramp/2
     log.debug(f"t_phase_read: {t_phase_read*1e6} us")
-    t_phase_read_180 = (t_echo - p.t_90 - p.t_180)/2 - t_phase_read - 4*p.t_grad_ramp
-    log.debug(f"preread gradient to 180 time: {t_phase_read_180*1e6} us")
-    if t_phase_read_180 <= 0:
-        raise Exception('phase gradient time too short')
+    
+    t_unslice_add = t_MIN # total unslice gradient time is t_phase_read+t_unslice_add
+    # calculate the the gradient amplitude required to match half the slice gradient area during the unslice gradient time
+    g_unslice = -p.g_slice*0.5*(p.t_90+p.t_grad_ramp)/(t_phase_read+t_unslice_add+2*p.t_grad_ramp)
+    if np.linalg.norm(g_unslice) >= 1:
+        t_unslice_add += ((t_phase_read+t_unslice_add+2*p.t_grad_ramp)*np.linalg.norm(g_unslice)) - (t_phase_read+t_unslice_add+2*p.t_grad_ramp) # (required duration - current duration)
+        g_unslice = -p.g_slice*0.5*(p.t_90+p.t_grad_ramp)/(t_phase_read+t_unslice_add+2*p.t_grad_ramp)
+    log.debug(f'g_unslice: {str(g_unslice)}, t_unslice_add: {str(t_unslice_add)}')
+
+    t_unslice_180 = t_MIN
+    t_echo_pad = t_MIN
+
+    t_echo_1 = p.t_180 + 6*p.t_grad_ramp + 2*p.t_phase + p.t_read + 2*t_echo_pad
+    t_echo_2 = 2*((p.t_90 + p.t_180)/2 + t_phase_read + 4*p.t_grad_ramp + t_unslice_add+p.t_grad_ramp+t_unslice_180)
+    
+    t_echo = max(t_echo_1, t_echo_2)
+
+    if t_echo_1 > t_echo_2 :
+        t_unslice_180 = (t_echo_1-t_echo_2)/2
+    else:
+        t_echo_pad = (t_echo_2-t_echo_1)/2
+    
+    log.debug(f"echo time: {t_echo}")
+    
     
     t_acq_delay = (p.t_read - p.n_samples*p.t_dw)/2
     if t_acq_delay < 0:
         raise Exception('t_read too short!')
-    
-    
-    # time from end of inversion pulse to start of excitation pulse
-    t_inv_90 = p.t_inv - (p.t_90+p.t_180)/2
-    if t_inv_90 <= 0:
-        raise Exception('t_inv too short!')
     
     n_phase_cycle = 4
     phase_cycle_90 = [0, 180, 0, 180]
@@ -132,13 +142,6 @@ def main(p: ParameterSet):
     p_rf_acc = 0 # accumation of RF phase by running at a different frequency
     p_90_inc = 0 # phase accumulated by a 90 pulse (to be calculated)
     p_180_inc = 0 # phase accumulated by a 180 pulse (to be calculated)
-    
-
-    t_inv_90 -= p.t_grad_ramp # keep t_inv setting the time between centres of pulses
-        
-    # calculate the the gradient amplitude required to match half the slice gradient area during the read prephasing gradient time
-    g_unslice = -p.g_slice*0.5*(p.t_90+p.t_grad_ramp)/(t_phase_read+p.t_grad_ramp)
-    log.debug(f'g_unslice: {str(g_unslice)}')
 
     log.debug('using softpulse')
     # to offset the slice, the RF pulses must have a frequency offset,
@@ -169,7 +172,8 @@ def main(p: ParameterSet):
     g_ramp_zero_to_slice = gen_grad_ramp(g_ZERO, p.g_slice, p.t_grad_ramp, p.n_grad_ramp)
     g_ramp_slice_to_zero = gen_grad_ramp(p.g_slice, g_ZERO, p.t_grad_ramp, p.n_grad_ramp)
     g_ramp_zero_to_read_unslice = gen_grad_ramp(g_ZERO, p.g_read+g_unslice, p.t_grad_ramp, p.n_grad_ramp)
-    g_ramp_read_unslice_to_zero = gen_grad_ramp(p.g_read+g_unslice, g_ZERO, p.t_grad_ramp, p.n_grad_ramp)
+    g_ramp_read_unslice_to_unslice = gen_grad_ramp(p.g_read+g_unslice, g_unslice, p.t_grad_ramp, p.n_grad_ramp)
+    g_ramp_unslice_to_zero = gen_grad_ramp(g_unslice, g_ZERO, p.t_grad_ramp, p.n_grad_ramp)
     g_ramp_zero_to_read = gen_grad_ramp(g_ZERO, p.g_read, p.t_grad_ramp, p.n_grad_ramp)
     g_ramp_read_to_zero = gen_grad_ramp(p.g_read, g_ZERO, p.t_grad_ramp, p.n_grad_ramp)
     
@@ -196,8 +200,10 @@ def main(p: ParameterSet):
             yield (
                 g_ramp_zero_to_read_unslice
                 + seq.wait(t_phase_read)
-                + g_ramp_read_unslice_to_zero
-                + seq.wait(t_phase_read_180)
+                + g_ramp_read_unslice_to_unslice
+                + seq.wait(t_unslice_add)
+                + g_ramp_unslice_to_zero
+                + seq.wait(t_unslice_180)
             )
 
             for i_echo in range(n_echos):
@@ -224,6 +230,8 @@ def main(p: ParameterSet):
                     + seq.pulse_end()
                 )
                 p_rf_acc += p_180_inc/2
+                
+                yield seq.wait(t_echo_pad)
            
                 yield (
                     # phase blip
@@ -245,6 +253,8 @@ def main(p: ParameterSet):
                     + seq.gradient(*g_ZERO)
                     + seq.wait(p.t_grad_ramp)
                 )
+            
+                yield seq.wait(t_echo_pad)
             
             # spoiler pulse
             yield seq.gradient(*p.g_spoil)
