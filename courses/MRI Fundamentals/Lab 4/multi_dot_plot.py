@@ -5,11 +5,11 @@ import yaml
 import numpy as np
 
 from matipo import Sequence, SEQUENCE_DIR, GLOBALS_DIR, DATA_DIR
-from matipo.experiment import BaseExperiment # load before pn.extension() for stylesheet changes on panel < 1.0
-from matipo.experiment.plot import SignalPlot, SpectrumPlot
-
-from matipo.experiment.base_experiment import PlotInterface
 from matipo.util.plots import SharedXPlot
+
+from experiment import BaseExperiment # load before pn.extension() for stylesheet changes on panel < 1.0
+from experiment.plot import SignalPlot, SpectrumPlot
+from experiment.base_experiment import PlotInterface
 
 from bokeh.plotting import figure, show, ColumnDataSource
 from bokeh.models import HoverTool, Circle
