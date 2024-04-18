@@ -37,7 +37,7 @@ The notebooks can also be viewed on a PC with jupyterlab installed (but generall
 | 1   | Intro to NMR          | First Draft    |
 | 2   | Imaging & K-Space     | First Draft    |
 | 3   | Selective Excitation  | First Draft    |
-| 4   | Relaxation & Contrast | In Development |
+| 4   | Relaxation & Contrast | First Draft    |
 | 5   | Fast Imaging          | Planned        |
 | 6   | Imaging Artefacts     | Planned        |
 | 7   | Flow & Diffusion      | Planned        |
