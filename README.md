@@ -4,6 +4,8 @@ Lab courses for [ilumr: the Educational MRI System by Resonint](https://resonint
 
 ## Installation on ilumr
 
+Note: If you are still using ilumr software version 2.1.0, you will need to update the ilumr to at least version 2.2.0 to include the Experiment library that is used in the latest version of the courseware. ALternately you can use the v0.1.0 release of this repository with ilumr v2.1.0.
+
 #### Method 1: With `git`
 
 Requires internet access on the ilumr system via its ethernet connection.
@@ -34,10 +36,10 @@ The notebooks can also be viewed on a PC with jupyterlab installed (but generall
 
 | #   | Topic                 | Status         |
 | --- | --------------------- | -------------- |
-| 1   | Intro to NMR          | First Draft    |
-| 2   | Imaging & K-Space     | First Draft    |
-| 3   | Selective Excitation  | First Draft    |
-| 4   | Relaxation & Contrast | First Draft    |
+| 1   | Intro to NMR          | Complete       |
+| 2   | Imaging & K-Space     | Complete       |
+| 3   | Selective Excitation  | Complete       |
+| 4   | Relaxation & Contrast | Second Draft   |
 | 5   | Fast Imaging          | Planned        |
 | 6   | Imaging Artefacts     | Planned        |
 | 7   | Flow & Diffusion      | Planned        |
@@ -55,7 +57,7 @@ Issues are appreciated for reporting bugs. For general support, create a topic i
 
 ## Acknowledgments
 
-This project is built on contributions from the following people:
+This project has contributions from the following people:
 - Cameron Dykstra
 - Sharon McTaggart
 - Sergei Obruchkov
