@@ -4,7 +4,7 @@ Lab courses for [ilumr: the Educational MRI System by Resonint](https://resonint
 
 ## Installation on ilumr
 
-Note: If you are still using ilumr software version 2.1.0, you will need to update the ilumr to at least version 2.2.0 to include the Experiment library that is used in the latest version of the courseware. ALternately you can use the v0.1.0 release of this repository with ilumr v2.1.0.
+Note: If you are still using ilumr software version 2.1.0, you will need to update the ilumr to at least version 2.2.0 to include the Experiment library that is used in the latest version of the courseware. Alternately you can use the v0.1.0 release of this repository with ilumr v2.1.0.
 
 #### Method 1: With `git`
 
