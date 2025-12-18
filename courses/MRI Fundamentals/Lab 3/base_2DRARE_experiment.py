@@ -2,7 +2,7 @@ import os
 import yaml
 import numpy as np
 
-from matipo import Sequence, SEQUENCE_DIR, GLOBALS_DIR, DATA_DIR, Unit
+from matipo import Sequence, GLOBALS_DIR, DATA_DIR, Unit
 from matipo.util.decimation import decimate
 from matipo.util.fft import fft_reconstruction
 from matipo.util.etl import deinterlace
@@ -14,7 +14,7 @@ GAMMA_BAR = 42.58e6
 
 class Base2DRAREExperiment(BaseExperiment):
     def setup(self):
-        self.seq = Sequence(SEQUENCE_DIR+'RARE.py')
+        self.seq = Sequence('programs/RARE.py')
         self.enable_partialplot = True
         
         self.plots = {
